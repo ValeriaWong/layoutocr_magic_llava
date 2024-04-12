@@ -19,9 +19,9 @@ CLASSES = {
     15: "memo",
 }
 
-result_path = Path("D:\\LLM\\来自：快传\\layoutocr_magic_llava_data\\LaytoutLM\\RVL-CDIP\\data\\rvl-cdip\\images")
+result_path = Path("YOUR_LOCAL_PATH\\layoutocr_magic_llava_data\\LaytoutLM\\RVL-CDIP\\data\\rvl-cdip\\images")
 
-train_file_path = Path("D:\\LLM\\来自：快传\\layoutocr_magic_llava_data\\LaytoutLM\\RVL-CDIP\\data\\train.txt")
+train_file_path = Path("YOUR_LOCAL_PATH\\layoutocr_magic_llava_data\\LaytoutLM\\RVL-CDIP\\data\\train.txt")
 with open(train_file_path, 'r', encoding='utf-8') as f:
     lines = f.readlines()
 
@@ -32,7 +32,7 @@ for line in lines:
         relative_img_path, img_label_str = parts
         img_label = int(img_label_str)  # 将标签转换为整数
 
-        base_dir = Path("D:\\LLM\\来自：快传\\layoutocr_magic_llava_data\\LaytoutLM\\RVL-CDIP\\data\\rvl-cdip\\images")
+        base_dir = Path("YOUR_LOCAL_PATH\\layoutocr_magic_llava_data\\LaytoutLM\\RVL-CDIP\\data\\rvl-cdip\\images")
         img_path = base_dir / relative_img_path
 
         if img_path.exists():
