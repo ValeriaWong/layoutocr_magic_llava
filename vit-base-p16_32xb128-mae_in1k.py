@@ -25,7 +25,10 @@ data_preprocessor = dict(
         57.375,
     ],
     to_rgb=True)
+
+# 必须改成CustomDataset才能满足格式要求
 dataset_type = 'CustomDataset'
+
 default_hooks = dict(
     checkpoint=dict(interval=1, type='CheckpointHook'),
     logger=dict(interval=100, type='LoggerHook'),
@@ -103,7 +106,12 @@ test_dataloader = dict(
     batch_size=64,
     collate_fn=dict(type='default_collate'),
     dataset=dict(
+
+            
+        # data_root直接改成自己的test的位置
         data_root='mmpretrain/data/CUSTOM/test',
+
+            
         pipeline=[
             dict(type='LoadImageFromFile'),
             dict(
@@ -115,7 +123,10 @@ test_dataloader = dict(
             dict(crop_size=224, type='CenterCrop'),
             dict(type='PackInputs'),
         ],
+        # 删除了这里原本存在的split(),因为在customdataset里面的是不存在split的
+        # 并且让type变为Customdataset
         type='CustomDataset'),
+        
     num_workers=5,
     persistent_workers=True,
     pin_memory=True,
@@ -141,6 +152,8 @@ train_dataloader = dict(
     batch_size=128,
     collate_fn=dict(type='default_collate'),
     dataset=dict(
+
+        # 直接改为train的路径
         data_root='mmpretrain/data/CUSTOM/train',
         pipeline=[
             dict(type='LoadImageFromFile'),
@@ -181,6 +194,8 @@ train_dataloader = dict(
                 type='RandomErasing'),
             dict(type='PackInputs'),
         ],
+        # 删除了这里原本存在的split(),因为在customdataset里面的是不存在split的
+        # 并且让type变为Customdataset
         type='CustomDataset'),
     num_workers=5,
     persistent_workers=True,
@@ -229,6 +244,8 @@ val_dataloader = dict(
     batch_size=64,
     collate_fn=dict(type='default_collate'),
     dataset=dict(
+
+        # 改为val的路径
         data_root='mmpretrain/data/CUSTOM/val',
         pipeline=[
             dict(type='LoadImageFromFile'),
@@ -241,6 +258,8 @@ val_dataloader = dict(
             dict(crop_size=224, type='CenterCrop'),
             dict(type='PackInputs'),
         ],
+        # 删除了这里原本存在的split(),因为在customdataset里面的是不存在split的
+        # 并且让type变为Customdataset
         type='CustomDataset'),
     num_workers=5,
     persistent_workers=True,
