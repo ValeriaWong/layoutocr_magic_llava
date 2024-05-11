@@ -33,7 +33,7 @@ class LlavaMetaModel:
 
         if hasattr(config, "mm_vision_tower"):
             self.vision_tower = build_vision_tower(config, delay_load=True)
-            self.mm_projector = build_vision_projector(config)
+            self.mm_projector = build_vision_projector(config)      # 模型定义
 
             if 'unpad' in getattr(config, 'mm_patch_merge_type', ''):
                 self.image_newline = nn.Parameter(
@@ -50,7 +50,7 @@ class LlavaMetaModel:
         vision_tower = model_args.vision_tower
         mm_vision_select_layer = model_args.mm_vision_select_layer
         mm_vision_select_feature = model_args.mm_vision_select_feature
-        pretrain_mm_mlp_adapter = model_args.pretrain_mm_mlp_adapter
+        pretrain_mm_mlp_adapter = model_args.pretrain_mm_mlp_adapter        #下载的预训练模型
         mm_patch_merge_type = model_args.mm_patch_merge_type
 
         self.config.mm_vision_tower = vision_tower
@@ -71,7 +71,9 @@ class LlavaMetaModel:
 
         self.config.use_mm_proj = True
         self.config.mm_projector_type = getattr(model_args, 'mm_projector_type', 'linear')
+        print(f"vision_tower.hidden_size:{vision_tower.hidden_size}")
         self.config.mm_hidden_size = vision_tower.hidden_size
+        # print(f"mm_hidden_size:{self.config.mm_hidden_size}")
         self.config.mm_vision_select_layer = mm_vision_select_layer
         self.config.mm_vision_select_feature = mm_vision_select_feature
         self.config.mm_patch_merge_type = mm_patch_merge_type
@@ -89,10 +91,27 @@ class LlavaMetaModel:
             for p in self.mm_projector.parameters():
                 p.requires_grad = True
 
+        # 如果有预训练模型才加载权重/
         if pretrain_mm_mlp_adapter is not None:
             mm_projector_weights = torch.load(pretrain_mm_mlp_adapter, map_location='cpu')
             def get_w(weights, keyword):
                 return {k.split(keyword + '.')[1]: v for k, v in weights.items() if keyword in k}
+
+            print(self.mm_projector)
+            # Sequential(
+            #     (0): Linear(in_features=1024, out_features=2048, bias=True)
+            #     (1): GELU(approximate='none')
+            #     (2): Linear(in_features=2048, out_features=2048, bias=True)
+            #     )
+            
+            print('\n')
+
+            for name, weight in mm_projector_weights.items():
+                print(f"{name}: {weight.size()}")
+            # model.mm_projector.0.weight: torch.Size([5120, 1024])
+            #     model.mm_projector.0.bias: torch.Size([5120])
+            #     model.mm_projector.2.weight: torch.Size([5120, 5120])
+            #     model.mm_projector.2.bias: torch.Size([5120])
 
             self.mm_projector.load_state_dict(get_w(mm_projector_weights, 'mm_projector'))
 
@@ -139,8 +158,6 @@ class LlavaMetaForCausalLM(ABC):
 
     def encode_images(self, images):
         image_features = self.get_model().get_vision_tower()(images)
-        print("image_features.shape in encode_images")
-        print(image_features.shape)     # torch.Size([32, 576, 1024])
         image_features = self.get_model().mm_projector(image_features)
         return image_features
 
@@ -235,7 +252,9 @@ class LlavaMetaForCausalLM(ABC):
             num_images = (cur_input_ids == IMAGE_TOKEN_INDEX).sum()
             if num_images == 0:
                 cur_image_features = image_features[cur_image_idx]
-                cur_input_embeds_1 = self.get_model().embed_tokens(cur_input_ids)
+                # humor
+                # cur_input_embeds_1 = self.get_model().embed_tokens(cur_input_ids)
+                cur_input_embeds_1 = self.get_model().tok_embeddings(cur_input_ids)
                 cur_input_embeds = torch.cat([cur_input_embeds_1, cur_image_features[0:0]], dim=0)
                 new_input_embeds.append(cur_input_embeds)
                 new_labels.append(labels[batch_idx])
@@ -250,7 +269,8 @@ class LlavaMetaForCausalLM(ABC):
                 cur_input_ids_noim.append(cur_input_ids[image_token_indices[i]+1:image_token_indices[i+1]])
                 cur_labels_noim.append(cur_labels[image_token_indices[i]+1:image_token_indices[i+1]])
             split_sizes = [x.shape[0] for x in cur_labels_noim]
-            cur_input_embeds = self.get_model().embed_tokens(torch.cat(cur_input_ids_noim))
+            # cur_input_embeds = self.get_model().embed_tokens(torch.cat(cur_input_ids_noim))
+            cur_input_embeds = self.get_model().tok_embeddings(torch.cat(cur_input_ids_noim))
             cur_input_embeds_no_im = torch.split(cur_input_embeds, split_sizes, dim=0)
             cur_new_input_embeds = []
             cur_new_labels = []
@@ -266,17 +286,6 @@ class LlavaMetaForCausalLM(ABC):
 
             cur_new_input_embeds = [x.to(self.device) for x in cur_new_input_embeds]
 
-            if batch_idx == 0:
-                print("images.shape")
-                print(images.shape)         #images.shape  torch.Size([32, 3, 336, 336])
-                print("cur_new_input_embeds!")
-                print(cur_new_input_embeds)
-                print("num_images")
-                print(num_images)
-                print("image_features_type")        # <class 'torch.Tensor'>
-                print(type(image_features))
-                print("image_features_shape")
-                print(image_features.shape)     # torch.Size([32, 576, 2048])
             cur_new_input_embeds = torch.cat(cur_new_input_embeds)
             cur_new_labels = torch.cat(cur_new_labels)
 
