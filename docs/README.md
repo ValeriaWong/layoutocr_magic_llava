@@ -25,7 +25,7 @@
 ## 📄 架构图
 
 <div align="center">
-  <img src="../assets/Magic_llava.drawio.png" width="600"/>
+  <img src="../assets/Magic_llava.drawio.png" width="1000"/>
 </div>
 
 
