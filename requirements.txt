@@ -1,1 +1,6 @@
-
+lmdeploy
+gradio==3.43.0
+transformers
+timm
+modelscope
+ninja
